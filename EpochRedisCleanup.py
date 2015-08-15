@@ -4,7 +4,7 @@ import datetime
 keynameai = 'AI:'
 keynameitems = 'AI_ITEMS:'
 servername = 'NA82:'
-_password = 'Yourpassword'
+_password = 'yourpassword'
 _port = 6379
 _db = 2
 vehicles = {
@@ -51,12 +51,17 @@ vehicles = {
 "C_Heli_Light_01_civil_EPOCH" : "Civil MH-9"
 }
 
-def getnumitems(aisitems, finditem):
+def getnumitems(ainum, aisitems, finditem):
     items,sep,numbers = aisitems.partition('],[')
+    # print ('%s %s' % (items, numbers))
+    items = items[2:]
+    numbers = numbers.strip(']')
+    # print ('%s %s' % (items, numbers))
     items = items.strip('"')
     itemslist = items.split(',')
     numberslist = numbers.split(',')
-    for i in range(0, len(itemslist)-1):
+    for i in range(0, len(itemslist)):
+        # print ('ai %s has %s %s' % (ainum, itemslist[i], numberslist[i] ))
         if (itemslist[i] == finditem):
             break
     return numberslist[i]
@@ -75,7 +80,7 @@ for ainum in range(0,100):
         if aisitems != None:
             for veh in vehicles.keys():
                 if veh in aisitems:
-                    numveh = getnumitems(aisitems, veh)
+                    numveh = getnumitems(ainum, aisitems, veh)
                     if numveh > 0:
                         # print ('ai: %s has %s' % (ainame, vehicles[veh]))
                         f.write('ai: %s has  %s %s \n' % (ainame, numveh, vehicles[veh]))
