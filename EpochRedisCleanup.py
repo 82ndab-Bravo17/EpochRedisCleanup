@@ -57,7 +57,7 @@ def getnumitems(ainum, aisitems, finditem):
     items = items[2:]
     numbers = numbers.strip(']')
     # print ('%s %s' % (items, numbers))
-    items = items.strip('"')
+    items = items.replace('"', '')
     itemslist = items.split(',')
     numberslist = numbers.split(',')
     for i in range(0, len(itemslist)):
