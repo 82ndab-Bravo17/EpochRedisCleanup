@@ -42,6 +42,7 @@ vehicles = {
 "O_Heli_Transport_04_covered_EPOCH" :  "Taru",
 "B_Heli_Transport_03_unarmed_EPOCH" :  "Huron",
 "jetski_epoch" : "Jetski",
+
 "K01" : "Kart",
 "K02" : "Kart",
 "K03" : "Kart",
@@ -51,23 +52,56 @@ vehicles = {
 "C_Heli_Light_01_civil_EPOCH" : "Civil MH-9"
 }
 
-def getnumitems(ainum, aisitems, finditem):
+def getnumvehs(ainum, aisitems):
     items,sep,numbers = aisitems.partition('],[')
-    # print ('%s %s' % (items, numbers))
     items = items[2:]
     numbers = numbers.strip(']')
-    # print ('%s %s' % (items, numbers))
     items = items.replace('"', '')
     itemslist = items.split(',')
     numberslist = numbers.split(',')
+    num = 0
+    for i in range(0, len(itemslist)-1):
+        if itemslist[i] in vehicles.keys():
+            f.write ('ai %s has %s %s\n' % (ainum, numberslist[i], vehicles[itemslist[i]]))
+    return
+
+def getitemlist(ainum, aisitems):
+    items,sep,numbers = aisitems.partition('],[')
+    items = items[2:]
+    numbers = numbers.strip(']')
+    items = items.replace('"', '')
+    itemslist = items.split(',')
+    numberslist = numbers.split(',')
+    return itemslist, numberslist
+    
+def delvehicle(ainum, aisitems, finditem):
+
+    itemslist, numberslist = getitemlist(ainum, aisitems)
+    f.write ('Itemslist %s - numberslist %s\n' % (len(itemslist), len(numberslist)))
+
     for i in range(0, len(itemslist)):
-        print ('ai %s has %s %s' % (ainum, itemslist[i], numberslist[i] ))
-        if (itemslist[i] == finditem):
-            break
-    return numberslist[i]
+        # f.write ('ai %s has %s %s\n' % (ainum, itemslist[i], numberslist[i] ))
+        if (itemslist[i] in vehicles.keys()):
+            numberslist[i] = '-1'
+            f.write ('%s was deleted\n' % vehicles[itemslist[i]])
+    itemsdata = '[['
+    amountdata = '],['
+    for j in range (0, len(itemslist)):
+        if numberslist[j] != '-1':
+            itemsdata = itemsdata + '"' + itemslist[j] + '",'
+            amountdata = amountdata + numberslist[j] + ','
+            
+    itemsdata = itemsdata[0:len(itemsdata)-1]
+    amountdata = amountdata[0:len(amountdata)-1] +  ']]'
+    data = itemsdata + amountdata
+    # f.write('New data is %s \n\n' % data)
+    # break
+    # getitemlist(ainum, data)
+    return data
+
 
 r = redis.StrictRedis(host='localhost', password=_password, port=_port, db=_db)
-f = open("databasestats.txt", "a")
+f = open("deletevehiclestats.txt", "a")
 timenow = datetime.datetime.now()
 f.write ('\n\n\n\nTime is: %s at %s:%s\n\n' % (datetime.date.today(), getattr(timenow, 'hour'), getattr(timenow, 'minute')))
 for ainum in range(0,100):
@@ -77,28 +111,24 @@ for ainum in range(0,100):
     if ainum < 8:
         aitype = True
     if (aitype):
+        aisitems = ''
         keyitems = keynameitems + servername + ainame
         aisitems = r.get(keyitems)
         timelive = r.ttl(keyitems)
-        print ('ai %s has items live for %s seconds' % (ainum, timelive))
+        # f.write ('ai %s has items live for %s seconds\n' % (ainum, timelive))
         if aisitems != None:
             for veh in vehicles.keys():
                 if veh in aisitems:
-                    numveh = getnumitems(ainum, aisitems, veh)
-                    if numveh > 0:
-                        # print ('ai: %s has %s' % (ainame, vehicles[veh]))
-                        f.write('ai: %s has  %s %s \n' % (ainame, numveh, vehicles[veh]))
-            if ("ItemRope" not in aisitems) and ("ItemRock" not in aisitems) and ("ItemStick" not in aisitems):
-                # print ('ai %s has no rope, rock, or stick, deleting' % ainame)
-                f.write ('ai %s has no rope, rock, or stick, deleting\n' % ainame)
-                r.delete(keyai)
-                r.delete(keyitems)
-        else:
-            # print ('ai: %s has no itmes, deleting' % ainame)
-            f.write ('ai: %s has no itmes, deleting\n' % ainame)
-            r.delete(keyai)
+                    f.write('Old data is \n %s \n' % aisitems)
+                    getnumvehs(ainum, aisitems)
+                    aisnewitems = delvehicle(ainum, aisitems, veh)
+                    getnumvehs(ainum, aisnewitems)
+                    f.write('New data is \n %s \n' % aisnewitems)
+                    f.write ('\n\n')
+                    r.setex(keyitems, timelive, aisnewitems)
+                    break
 
-            
+
 f.close()
 
 
